@@ -451,7 +451,7 @@
 		switch@1d {
 			compatible = "realtek,rtl8365mb";
 			reg = <0x1d>;
-			reset-gpios = <&gpio0 RK_PA3 GPIO_ACTIVE_LOW>;
+			reset-gpios = <&gpio0 RK_PA5 GPIO_ACTIVE_LOW>;
 
 			interrupt-controller;
 			#address-cells = <0>;
