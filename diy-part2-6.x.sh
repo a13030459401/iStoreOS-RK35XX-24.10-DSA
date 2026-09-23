@@ -46,12 +46,10 @@ grep -nE \
   exit 1
 }
 
-echo "✅ EasePi RK3568 U-Boot DTS injection verified."
-echo "========================================================="
 
 # ===============================================================
-# 输出当前 24.10 EasePi RK3568 U-Boot 的按键/USB 相关配置。
-# 先确认当前U-Boot版本实际可识别哪些Kconfig符号，再决定是否追加。
+# 通用 EasePi RK3568 U-Boot：仅检查现有配置，不强制改写。
+# bd-one 通过 Device/Legacy/rk3568 使用 easepi-rk3568。
 # ===============================================================
 UBOOT_DEFCONFIG="package/boot/uboot-rockchip/src/configs/easepi-rk3568_defconfig"
 
@@ -65,8 +63,6 @@ grep -nE \
   'CONFIG_(CMD_ADC|ADC_KEY|ADC|ADC_ROCKCHIP|SPL_OF_CONTROL|SPL_PINCTRL|USB_DWC3_GADGET|USB_GADGET|USB_GADGET_DOWNLOAD|ROCKCHIP_DNL_KEY)' \
   "$UBOOT_DEFCONFIG" || true
 echo "========================================================"
-
-
 
 
 # 修改uhttpd配置文件，启用nginx
