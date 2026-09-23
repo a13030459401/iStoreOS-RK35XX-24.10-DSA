@@ -7,6 +7,11 @@
 # Blog: https://p3terx.com
 #===============================================
 
+# enable rk3568 model adc keys (bendian-one via default easepi uboot dts)
+cp -f $GITHUB_WORKSPACE/configfiles/adc-keys.txt adc-keys.txt
+! grep -q 'adc-keys {' package/boot/uboot-rockchip/src/dts/upstream/src/arm64/rockchip/rk3568-easepi.dts && \
+  sed -i '/"rockchip,rk3568";/r adc-keys.txt' package/boot/uboot-rockchip/src/dts/upstream/src/arm64/rockchip/rk3568-easepi.dts
+
 # 修改uhttpd配置文件，启用nginx
 # sed -i "/.*uhttpd.*/d" .config
 # sed -i '/.*\/etc\/init.d.*/d' package/network/services/uhttpd/Makefile
