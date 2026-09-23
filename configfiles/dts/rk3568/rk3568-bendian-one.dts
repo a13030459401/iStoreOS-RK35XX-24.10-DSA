@@ -535,8 +535,8 @@ ranges = <0x01000000 0x00 0xf0100000 0x00 0xf0100000 0x00 0x00100000>,
     trips {
         /* 65°C 开全速；温度低于 60°C 才停止 */
         cpu_fan_on: cpu-fan-on {
-            temperature = <65000>;
-            hysteresis = <5000>;
+            temperature = <70000>;
+            hysteresis = <10000>;
             type = "active";
         };
 
@@ -600,8 +600,8 @@ ranges = <0x01000000 0x00 0xf0100000 0x00 0xf0100000 0x00 0x00100000>,
     trips {
         /* GPU 达 65°C：风扇全速；低于 60°C 才关闭 */
         gpu_fan_on: gpu-fan-on {
-            temperature = <65000>;
-            hysteresis = <5000>;
+            temperature = <70000>;
+            hysteresis = <10000>;
             type = "active";
         };
 
