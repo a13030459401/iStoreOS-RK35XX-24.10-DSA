@@ -7,7 +7,16 @@
 # Blog: https://p3terx.com
 #===============================================
 
+
+
+
 # enable rk3568 model adc keys (bendian-one via default easepi uboot dts)
+# 先确保 input.h 被包含（如果还没有的话）
+! grep -q 'dt-bindings/input/input.h' package/boot/uboot-rockchip/src/dts/upstream/src/arm64/rockchip/rk3568-easepi.dts && \
+  sed -i '/#include <dt-bindings\/gpio\/gpio.h>/a #include <dt-bindings/input/input.h>' \
+  package/boot/uboot-rockchip/src/dts/upstream/src/arm64/rockchip/rk3568-easepi.dts
+
+# 再插入 adc-keys 节点（你原来那条不用变）
 cp -f $GITHUB_WORKSPACE/configfiles/adc-keys.txt adc-keys.txt
 ! grep -q 'adc-keys {' package/boot/uboot-rockchip/src/dts/upstream/src/arm64/rockchip/rk3568-easepi.dts && \
   sed -i '/"rockchip,rk3568";/r adc-keys.txt' package/boot/uboot-rockchip/src/dts/upstream/src/arm64/rockchip/rk3568-easepi.dts
