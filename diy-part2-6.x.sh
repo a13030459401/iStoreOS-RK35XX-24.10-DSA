@@ -21,6 +21,44 @@ cp -f $GITHUB_WORKSPACE/configfiles/adc-keys.txt adc-keys.txt
 ! grep -q 'adc-keys {' package/boot/uboot-rockchip/src/dts/upstream/src/arm64/rockchip/rk3568-easepi.dts && \
   sed -i '/"rockchip,rk3568";/r adc-keys.txt' package/boot/uboot-rockchip/src/dts/upstream/src/arm64/rockchip/rk3568-easepi.dts
 
+# ===============================================================
+# 通用 EasePi RK3568 U-Boot：启用 ADC 按键与 RockUSB 下载模式
+# bd-one 通过 Device/Legacy/rk3568 使用 easepi-rk3568。
+# ===============================================================
+UBOOT_DEFCONFIG="package/boot/uboot-rockchip/src/configs/easepi-rk3568_defconfig"
+
+test -f "$UBOOT_DEFCONFIG" || {
+  echo "ERROR: 找不到 U-Boot defconfig: $UBOOT_DEFCONFIG"
+  exit 1
+}
+
+# ADC 按键驱动：解析 DTS 的 compatible = "adc-keys" 节点。
+grep -q '^CONFIG_ADC_KEY=y$' "$UBOOT_DEFCONFIG" || \
+  echo 'CONFIG_ADC_KEY=y' >> "$UBOOT_DEFCONFIG"
+
+# DWC3 gadget 与 Rockchip USB 下载设备。
+grep -q '^CONFIG_USB_DWC3_GADGET=y$' "$UBOOT_DEFCONFIG" || \
+  echo 'CONFIG_USB_DWC3_GADGET=y' >> "$UBOOT_DEFCONFIG"
+
+grep -q '^CONFIG_USB_GADGET=y$' "$UBOOT_DEFCONFIG" || \
+  echo 'CONFIG_USB_GADGET=y' >> "$UBOOT_DEFCONFIG"
+
+grep -q '^CONFIG_USB_GADGET_DOWNLOAD=y$' "$UBOOT_DEFCONFIG" || \
+  echo 'CONFIG_USB_GADGET_DOWNLOAD=y' >> "$UBOOT_DEFCONFIG"
+
+echo "========== EasePi RK3568 U-Boot config =========="
+grep -nE \
+  'CONFIG_CMD_ADC|CONFIG_ADC_KEY|CONFIG_SPL_OF_CONTROL|CONFIG_SPL_PINCTRL|CONFIG_USB_DWC3_GADGET|CONFIG_USB_GADGET|CONFIG_USB_GADGET_DOWNLOAD' \
+  "$UBOOT_DEFCONFIG"
+echo "=================================================="
+
+echo "===== U-Boot config final check ====="
+grep -nE \
+  'CONFIG_ADC_KEY|CONFIG_USB_DWC3_GADGET|CONFIG_USB_GADGET|CONFIG_USB_GADGET_DOWNLOAD' \
+  package/boot/uboot-rockchip/src/configs/easepi-rk3568_defconfig || true
+echo "======================================"
+
+
 # 修改uhttpd配置文件，启用nginx
 # sed -i "/.*uhttpd.*/d" .config
 # sed -i '/.*\/etc\/init.d.*/d' package/network/services/uhttpd/Makefile
