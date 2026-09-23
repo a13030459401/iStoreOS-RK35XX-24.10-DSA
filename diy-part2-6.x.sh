@@ -7,10 +7,9 @@
 # Blog: https://p3terx.com
 #===============================================
 
-
 # ===============================================================
 # RK3568 通用 EasePi U-Boot：为 bd-one 注入 ADC keys
-# bd-one -> Device/Legacy/rk3568 -> easepi-rk3568
+# bendian_bd-one -> Device/Legacy/rk3568 -> easepi-rk3568
 # ===============================================================
 UBOOT_DTS="package/boot/uboot-rockchip/src/dts/upstream/src/arm64/rockchip/rk3568-easepi.dts"
 ADC_KEYS_SRC="$GITHUB_WORKSPACE/configfiles/adc-keys.txt"
@@ -25,13 +24,13 @@ test -f "$ADC_KEYS_SRC" || {
   exit 1
 }
 
-# KEY_VOLUMEUP 宏来自 dt-bindings/input/input.h。
+# KEY_VOLUMEUP 宏来自 input.h。
 if ! grep -qF '#include <dt-bindings/input/input.h>' "$UBOOT_DTS"; then
   sed -i '/#include <dt-bindings\/gpio\/gpio.h>/a #include <dt-bindings/input/input.h>' \
     "$UBOOT_DTS"
 fi
 
-# 只注入一次，避免同一份源码被缓存或重复运行时出现重复节点。
+# 仅在没有 adc-keys 节点时插入，避免重复定义节点。
 if ! grep -q 'adc-keys {' "$UBOOT_DTS"; then
   sed -i '/"rockchip,rk3568";/r '"$ADC_KEYS_SRC" "$UBOOT_DTS"
 fi
