@@ -122,7 +122,22 @@ jobs:
 
     - name: 安装 feeds
       run: cd openwrt && ./scripts/feeds install -a
+    - name: 安装 feeds
+      run: |
+        cd openwrt
 
+        # 安装默认官方/iStoreOS feeds。
+        ./scripts/feeds install -a -p packages
+        ./scripts/feeds install -a -p luci
+        ./scripts/feeds install -a -p routing
+        ./scripts/feeds install -a -p telephony
+
+        # 仅装需要的第三方软件包；包名按你的实际需要调整。
+        ./scripts/feeds install -p kiddin9 luci-app-passwall
+        ./scripts/feeds install -p kiddin9 luci-app-openclash
+        ./scripts/feeds install -p kiddin9 luci-app-npc
+
+        
     - name: 加载自定义配置
       env:
         CONFIG_FILE_PATH: ${{ matrix.ARCHITECTURE }}/${{ env.CONFIG_FILE }}
