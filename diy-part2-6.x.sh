@@ -80,17 +80,6 @@ grep -nE \
   "$UBOOT_DEFCONFIG" || true
 echo "========================================================"
 
-        # Linux 6.6 不兼容旧 shortcut-fe / fast-classifier。
-        # 删除所有可能的启用写法，避免出现 y、m、默认选中等残留。
-        sed -i \
-          -e '/^CONFIG_PACKAGE_kmod-shortcut-fe=/d' \
-          -e '/^CONFIG_PACKAGE_kmod-shortcut-fe-cm=/d' \
-          -e '/^CONFIG_PACKAGE_kmod-fast-classifier=/d' \
-          -e '/^CONFIG_PACKAGE_shortcut-fe=/d' \
-          -e '/^CONFIG_PACKAGE_fast-classifier=/d' \
-          .config
-
-
 # 修改uhttpd配置文件，启用nginx
 # sed -i "/.*uhttpd.*/d" .config
 # sed -i '/.*\/etc\/init.d.*/d' package/network/services/uhttpd/Makefile
@@ -204,6 +193,18 @@ disable_package "luci-app-ddns"
 disable_package "ddnsto"
 disable_package "luci-app-linkease"
 disable_package "ddnsto"
+
+echo "========== 禁用 Linux 6.6 不兼容的 Shortcut-FE =========="
+
+disable_package "kmod-shortcut-fe"
+disable_package "kmod-shortcut-fe-cm"
+disable_package "kmod-fast-classifier"
+disable_package "shortcut-fe"
+disable_package "fast-classifier"
+
+grep -nE \
+'^(CONFIG_PACKAGE_(kmod-shortcut-fe|kmod-shortcut-fe-cm|kmod-fast-classifier|shortcut-fe|fast-classifier)=|# CONFIG_PACKAGE_(kmod-shortcut-fe|kmod-shortcut-fe-cm|kmod-fast-classifier|shortcut-fe|fast-classifier) is not set)' \
+.config || true
 
 echo "========== 请求启用 LuCI 包 =========="
 enable_package "luci-app-npc"
