@@ -132,13 +132,6 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
 
-    - name: 在线 SSH 调试
-      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ssh == 'true' }}
-      uses: owenthereal/action-upterm@v1
-      with:
-        limit-access-to-actor: true
-        wait-timeout-minutes: 60
-
     - name: 下载软件包
       id: package
       run: |
@@ -147,6 +140,13 @@ jobs:
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
+
+    - name: 在线 SSH 调试
+      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ssh == 'true' }}
+      uses: owenthereal/action-upterm@v1
+      with:
+        limit-access-to-actor: true
+        wait-timeout-minutes: 60
 
     - name: 编译固件
       id: compile
