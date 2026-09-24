@@ -182,7 +182,7 @@ cp -f $GITHUB_WORKSPACE/configfiles/init.sh target/linux/rockchip/armv8/base-fil
 
 
 cat "${GITHUB_WORKSPACE}/configfiles/config-6.6.local" >> target/linux/rockchip/armv8/config-6.6
-cat target/linux/rockchip/armv8/config-6.6
+#cat target/linux/rockchip/armv8/config-6.6
 
 
 # target/linux/rockchip/files/drivers/net/
