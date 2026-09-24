@@ -187,11 +187,10 @@ disable_package() {
     echo "# CONFIG_PACKAGE_${pkg} is not set" >> .config
 }
 
-disable_package "luci-app-ddns"
-disable_package "ddnsto"
-disable_package "luci-app-linkease"
-disable_package "ddnsto"
-
+# ===============================================================
+# Linux 6.6 不兼容旧 Shortcut-FE / Fast Classifier。
+# shortcut-fe 使用 skb->fast_forwarded，而 Linux 6.6 已删除该成员。
+# ===============================================================
 echo "========== 禁用 Linux 6.6 不兼容的 Shortcut-FE =========="
 
 disable_package "kmod-shortcut-fe"
@@ -200,9 +199,14 @@ disable_package "kmod-fast-classifier"
 disable_package "shortcut-fe"
 disable_package "fast-classifier"
 
+echo "----- 当前 Shortcut-FE 配置状态 -----"
 grep -nE \
 '^(CONFIG_PACKAGE_(kmod-shortcut-fe|kmod-shortcut-fe-cm|kmod-fast-classifier|shortcut-fe|fast-classifier)=|# CONFIG_PACKAGE_(kmod-shortcut-fe|kmod-shortcut-fe-cm|kmod-fast-classifier|shortcut-fe|fast-classifier) is not set)' \
 .config || true
+
+disable_package "luci-app-ddns"
+disable_package "ddnsto"
+disable_package "luci-app-linkease"
 
 echo "========== 请求启用 LuCI 包 =========="
 enable_package "luci-app-npc"
