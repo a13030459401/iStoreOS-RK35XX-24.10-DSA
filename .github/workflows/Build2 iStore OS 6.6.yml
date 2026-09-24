@@ -101,7 +101,7 @@ jobs:
         ln -sf ${{ env.WORKDIR_PATH }}/workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
     - name: 缓存构建动作
-      uses: a13030459301/cachewrtbuild@main
+      uses: a13030459401/cachewrtbuild@main
       with:
         ccache: false
         mixkey: ${{ matrix.os }}-${{ matrix.ARCHITECTURE }}-${{ matrix.REPO_BRANCH }}
