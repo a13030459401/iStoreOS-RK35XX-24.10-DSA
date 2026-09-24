@@ -3,13 +3,14 @@ name: Build2 iStore OS 6.6
 on:
   repository_dispatch:
   workflow_dispatch:
-    # inputs:
-      # ssh:
-        # description: 'SSH connection to Actions'
-        # required: false
-        # default: 'false'
+    inputs:
+      ssh:
+        description: '编译前启用在线 SSH 调试'
+        required: false
+        default: false
+        type: boolean
   schedule:
-   - cron: 0 16 * * *
+    - cron: '0 16 * * *'
 
 env:
   REPO_URL: https://github.com/istoreos/istoreos
