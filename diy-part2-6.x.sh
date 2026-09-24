@@ -152,6 +152,47 @@ git clone --depth=1 -b main https://github.com/xiaomeng9597/istoreos-settings pa
 git clone --depth=1 https://github.com/sirpdboy/luci-app-eqosplus package/luci-app-eqosplus
 
 
+# ===============================================================
+# OpenWrt 软件包选择
+# 注意：这里操作的是根目录 .config；不是 Linux config-6.6。
+# ===============================================================
+
+enable_package() {
+    local pkg="$1"
+    sed -i "/^CONFIG_PACKAGE_${pkg}=/d" .config
+    sed -i "/^# CONFIG_PACKAGE_${pkg} is not set$/d" .config
+    echo "CONFIG_PACKAGE_${pkg}=y" >> .config
+}
+
+echo "========== 请求启用 RKNPU 包 =========="
+enable_package "kmod-rknpu"
+grep -nE '^CONFIG_PACKAGE_kmod-rknpu=y$' .config || {
+    echo "ERROR: 未能写入 CONFIG_PACKAGE_kmod-rknpu=y"
+    exit 1
+}
+
+disable_package() {
+    local pkg="$1"
+
+    sed -i "/^CONFIG_PACKAGE_${pkg}=/d" .config
+    sed -i "/^# CONFIG_PACKAGE_${pkg} is not set$/d" .config
+    echo "# CONFIG_PACKAGE_${pkg} is not set" >> .config
+}
+
+disable_package "luci-app-ddns"
+disable_package "ddnsto"
+disable_package "luci-app-linkease"
+disable_package "ddnsto"
+
+echo "========== 请求启用 LuCI 包 =========="
+#enable_package "luci"
+
+echo "===== 当前 .config 中请求的 LuCI/RKNPU 包 ====="
+grep -nE '^CONFIG_PACKAGE_(kmod-rknpu|luci|luci-base|luci-i18n-base-zh-cn|luci-app-eqosplus|luci-i18n-eqosplus-zh-cn|luci-app-opkg|luci-app-ttyd|luci-app-filemanager|luci-app-argon-config)=y$' \
+  .config || true
+
+
+
 # 增加bendian_bd-one
 echo -e "\\ndefine Device/bendian_bd-one
 \$(call Device/Legacy/rk3568,\$(1))
