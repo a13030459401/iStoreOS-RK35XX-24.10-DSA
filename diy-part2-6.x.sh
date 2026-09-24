@@ -114,6 +114,10 @@ sed -i 's/# CONFIG_PACKAGE_kmod-rknpu is not set/CONFIG_PACKAGE_kmod-rknpu=y/' .
 echo "===== .config 中 rknpu 相关配置 ====="
 grep -i rknpu .config || echo "未找到任何 rknpu 相关配置项（可能命名不同，或该选项不存在于当前 defconfig）"
 
+
+echo "===== 搜索源码中所有含 rknpu auto_unload 的位置 ====="
+grep -rn "auto_unload.*rknpu" . 2>/dev/null || echo "未在当前源码树中找到相关配置"
+
 echo "===== 源码中 kmods 配置文件检查 ====="
 if [ -f package/base-files/files/etc/config/kmods ]; then
     cat package/base-files/files/etc/config/kmods
