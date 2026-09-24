@@ -93,6 +93,10 @@ cp -a $GITHUB_WORKSPACE/configfiles/etc/* package/base-files/files/etc/
 # 增加风扇控制驱动
 sed -i 's/# CONFIG_PACKAGE_kmod-hwmon-gpiofan is not set/CONFIG_PACKAGE_kmod-hwmon-gpiofan=y/' .config
 
+#添加第三方软件源
+sed -i "s/option check_signature/# option check_signature/g" package/system/opkg/Makefile
+echo src/gz openwrt_kiddin9 https://dl.openwrt.ai/latest/packages/aarch64_generic/kiddin9 >> ./package/system/opkg/files/customfeeds.conf
+
 cat > package/base-files/files/etc/modules.conf << 'EOF'
 # examples:
 # options mod1 option=val
