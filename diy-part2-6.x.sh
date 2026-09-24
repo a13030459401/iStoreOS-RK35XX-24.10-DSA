@@ -185,7 +185,10 @@ disable_package "luci-app-linkease"
 disable_package "ddnsto"
 
 echo "========== 请求启用 LuCI 包 =========="
-#enable_package "luci"
+enable_package "luci-app-npc"
+enable_package "npc"
+enable_package "luci-app-passwall"
+enable_package "luci-app-openclash"
 
 echo "===== 当前 .config 中请求的 LuCI/RKNPU 包 ====="
 grep -nE '^CONFIG_PACKAGE_(kmod-rknpu|luci|luci-base|luci-i18n-base-zh-cn|luci-app-eqosplus|luci-i18n-eqosplus-zh-cn|luci-app-opkg|luci-app-ttyd|luci-app-filemanager|luci-app-argon-config)=y$' \
