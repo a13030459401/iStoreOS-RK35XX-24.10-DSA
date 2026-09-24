@@ -124,13 +124,17 @@ jobs:
       run: |
         cd openwrt
 
-        # 安装默认官方/iStoreOS feeds。
-        ./scripts/feeds install -a -p packages
-        ./scripts/feeds install -a -p luci
-        ./scripts/feeds install -a -p routing
-        ./scripts/feeds install -a -p telephony
+        # 先把 kiddin9 feed 临时移走，避免 install -a 安装其所有包，
+        # 特别是与 Linux 6.6.144 不兼容的 shortcut-fe。
+        mv feeds/kiddin9 ../kiddin9-feed
 
-        # 仅装需要的第三方软件包；包名按你的实际需要调整。
+        # 安装除 kiddin9 之外的所有 feeds（iStoreOS 默认和你的其他第三方 feeds）。
+        ./scripts/feeds install -a
+
+        # 放回 kiddin9 源码，但只安装指定 package 的软链接。
+        mv ../kiddin9-feed feeds/kiddin9
+
+        # 只安装你需要的 kiddin9 package。
         ./scripts/feeds install -p kiddin9 luci-app-passwall
         ./scripts/feeds install -p kiddin9 luci-app-openclash
         ./scripts/feeds install -p kiddin9 luci-app-npc
