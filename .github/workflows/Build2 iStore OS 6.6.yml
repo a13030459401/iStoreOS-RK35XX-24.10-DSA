@@ -104,7 +104,7 @@ jobs:
     - name: 缓存构建动作
       uses: a13030459401/cachewrtbuild@main
       with:
-        ccache: false
+        ccache: true
         mixkey: rk35xx-v2-${{ matrix.os }}-${{ matrix.ARCHITECTURE }}-${{ matrix.REPO_BRANCH }}
         prefix: ${{ github.workspace }}/openwrt
 
