@@ -267,3 +267,18 @@ ls target/linux/rockchip/patches-6.6/
 # 复制dts设备树文件到指定目录下
 cp -a $GITHUB_WORKSPACE/configfiles/dts/rk3568/* target/linux/rockchip/dts/rk3568/
 cp -a $GITHUB_WORKSPACE/configfiles/dts/rk3588/* target/linux/rockchip/dts/rk3588/
+
+# ===============================================================
+# 最终兜底：防止任何后续自定义 package 重新选择 Shortcut-FE
+# ===============================================================
+echo "========== 最终禁用 Shortcut-FE =========="
+
+disable_package "kmod-shortcut-fe"
+disable_package "kmod-shortcut-fe-cm"
+disable_package "kmod-fast-classifier"
+disable_package "shortcut-fe"
+disable_package "fast-classifier"
+
+grep -nE \
+'^(CONFIG_PACKAGE_(kmod-shortcut-fe|kmod-shortcut-fe-cm|kmod-fast-classifier|shortcut-fe|fast-classifier)=|# CONFIG_PACKAGE_(kmod-shortcut-fe|kmod-shortcut-fe-cm|kmod-fast-classifier|shortcut-fe|fast-classifier) is not set)' \
+.config || true
