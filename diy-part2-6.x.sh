@@ -92,8 +92,22 @@ cp -a $GITHUB_WORKSPACE/configfiles/etc/* package/base-files/files/etc/
 
 # 增加风扇控制驱动
 sed -i 's/# CONFIG_PACKAGE_kmod-hwmon-gpiofan is not set/CONFIG_PACKAGE_kmod-hwmon-gpiofan=y/' .config
+
 # 移除rknpu黑名单限制（放在cp之后，防止被覆盖）
-sed -i '/blacklist rknpu/d' package/base-files/files/etc/modules.conf 2>/dev/null
+sed -i '/blacklist rknpu/d' package/base-files/files/etc/modules.conf
+
+echo "===== [调试] modules.conf 完整内容 ====="
+cat package/base-files/files/etc/modules.conf
+echo "===== [调试] 检查是否还残留 blacklist rknpu ====="
+if grep -q "blacklist rknpu" package/base-files/files/etc/modules.conf; then
+    echo "❌ ERROR: blacklist rknpu 仍然存在，sed未生效！"
+else
+    echo "✅ 确认已成功移除 blacklist rknpu"
+fi
+
+echo "===== [调试] 检查 .config 中 rknpu 选项状态 ====="
+grep -i rknpu .config || echo "未找到 rknpu 相关配置项"
+
 
 # 追加自定义内核配置项
 echo "CONFIG_PSI=y
