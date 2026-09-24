@@ -10,6 +10,6 @@
 			u-boot,dm-spl;
 			linux,code = <KEY_VOLUMEUP>;
 			label = "volume up";
-			press-threshold-microvolt = <9>;
+			press-threshold-microvolt = <60000>;
 		};
 	};
