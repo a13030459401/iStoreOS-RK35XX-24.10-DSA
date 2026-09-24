@@ -113,8 +113,13 @@ sed -i 's/# CONFIG_PACKAGE_kmod-rknpu is not set/CONFIG_PACKAGE_kmod-rknpu=y/' .
 
 echo "===== .config 中 rknpu 相关配置 ====="
 grep -i rknpu .config || echo "未找到任何 rknpu 相关配置项（可能命名不同，或该选项不存在于当前 defconfig）"
-cat /etc/config/kmods
-echo "以上是/etc/config/kmods"
+
+echo "===== 源码中 kmods 配置文件检查 ====="
+if [ -f package/base-files/files/etc/config/kmods ]; then
+    cat package/base-files/files/etc/config/kmods
+else
+    echo "源码中未找到 package/base-files/files/etc/config/kmods，说明这个文件可能是编译时自动生成的，不在预置文件里"
+fi
 
 # 追加自定义内核配置项
 echo "CONFIG_PSI=y
