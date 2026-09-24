@@ -80,6 +80,16 @@ grep -nE \
   "$UBOOT_DEFCONFIG" || true
 echo "========================================================"
 
+        # Linux 6.6 不兼容旧 shortcut-fe / fast-classifier。
+        # 删除所有可能的启用写法，避免出现 y、m、默认选中等残留。
+        sed -i \
+          -e '/^CONFIG_PACKAGE_kmod-shortcut-fe=/d' \
+          -e '/^CONFIG_PACKAGE_kmod-shortcut-fe-cm=/d' \
+          -e '/^CONFIG_PACKAGE_kmod-fast-classifier=/d' \
+          -e '/^CONFIG_PACKAGE_shortcut-fe=/d' \
+          -e '/^CONFIG_PACKAGE_fast-classifier=/d' \
+          .config
+
 
 # 修改uhttpd配置文件，启用nginx
 # sed -i "/.*uhttpd.*/d" .config
