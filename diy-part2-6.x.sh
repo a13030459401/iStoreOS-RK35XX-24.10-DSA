@@ -109,10 +109,17 @@ else
     echo "✅ 确认文件中没有 rknpu 相关黑名单"
 fi
 
-sed -i 's/# CONFIG_PACKAGE_kmod-rknpu is not set/CONFIG_PACKAGE_kmod-rknpu=y/' .config
+# 尝试启用 RKNPU 的 OpenWrt 内核模块包。
+# 该配置在后续 make defconfig 后仍须验证是否被保留。
+sed -i '/^CONFIG_PACKAGE_kmod-rknpu=/d' .config
+sed -i '/^# CONFIG_PACKAGE_kmod-rknpu is not set$/d' .config
+echo 'CONFIG_PACKAGE_kmod-rknpu=y' >> .config
 
-echo "===== .config 中 rknpu 相关配置 ====="
-grep -i rknpu .config || echo "未找到任何 rknpu 相关配置项（可能命名不同，或该选项不存在于当前 defconfig）"
+echo "===== P2 阶段：请求启用 kmod-rknpu ====="
+grep -nE '^CONFIG_PACKAGE_kmod-rknpu=|^# CONFIG_PACKAGE_kmod-rknpu is not set$' .config || {
+    echo "ERROR: 未能写入 CONFIG_PACKAGE_kmod-rknpu"
+    exit 1
+}
 
 
 echo "===== 搜索源码中所有含 rknpu auto_unload 的位置 ====="
