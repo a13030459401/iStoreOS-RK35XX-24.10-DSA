@@ -113,7 +113,8 @@ sed -i 's/# CONFIG_PACKAGE_kmod-rknpu is not set/CONFIG_PACKAGE_kmod-rknpu=y/' .
 
 echo "===== .config 中 rknpu 相关配置 ====="
 grep -i rknpu .config || echo "未找到任何 rknpu 相关配置项（可能命名不同，或该选项不存在于当前 defconfig）"
-
+cat /etc/config/kmods
+echo "以上是/etc/config/kmods"
 
 # 追加自定义内核配置项
 echo "CONFIG_PSI=y
