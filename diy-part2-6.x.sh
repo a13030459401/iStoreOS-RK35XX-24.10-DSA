@@ -64,33 +64,39 @@ echo "========================================================="
 
 UBOOT_DEFCONFIG="package/boot/uboot-rockchip/src/configs/easepi-rk3568_defconfig"
 
-grep -qxF 'CONFIG_DM_KEY=y' "$UBOOT_DEFCONFIG" || \
-  echo 'CONFIG_DM_KEY=y' >> "$UBOOT_DEFCONFIG"
-
-grep -qxF 'CONFIG_ADC_KEY=y' "$UBOOT_DEFCONFIG" || \
-  echo 'CONFIG_ADC_KEY=y' >> "$UBOOT_DEFCONFIG"
-
-echo "===== U-Boot key config ====="
-grep -nE \
-  '^CONFIG_(DM_KEY|ADC_KEY|CMD_ADC|SPL_OF_CONTROL|SPL_PINCTRL)=y$' \
-  "$UBOOT_DEFCONFIG"
-
-
-# ===============================================================
-# 通用 EasePi RK3568 U-Boot：仅检查现有配置，不强制改写。
-# bd-one 通过 Device/Legacy/rk3568 使用 easepi-rk3568。
-# ===============================================================
-
 test -f "$UBOOT_DEFCONFIG" || {
-  echo "ERROR: 找不到 U-Boot defconfig: $UBOOT_DEFCONFIG"
-  exit 1
+    echo "ERROR: 找不到 U-Boot defconfig: $UBOOT_DEFCONFIG"
+    exit 1
 }
 
-echo "========== EasePi RK3568 U-Boot config check =========="
+for cfg in \
+  'CONFIG_DM_KEY=y' \
+  'CONFIG_ADC_KEY=y' \
+  'CONFIG_USB_GADGET=y' \
+  'CONFIG_USB_DWC3_GADGET=y' \
+  'CONFIG_USB_GADGET_DOWNLOAD=y' \
+  'CONFIG_USB_FUNCTION_ROCKUSB=y' \
+  'CONFIG_CMD_ROCKUSB=y'
+do
+    grep -qxF "$cfg" "$UBOOT_DEFCONFIG" || echo "$cfg" >> "$UBOOT_DEFCONFIG"
+done
+
+echo "========== U-Boot key/RockUSB config =========="
 grep -nE \
-  'CONFIG_(CMD_ADC|ADC_KEY|ADC|ADC_ROCKCHIP|SPL_OF_CONTROL|SPL_PINCTRL|USB_DWC3_GADGET|USB_GADGET|USB_GADGET_DOWNLOAD|ROCKCHIP_DNL_KEY)' \
-  "$UBOOT_DEFCONFIG" || true
-echo "========================================================"
+  '^CONFIG_(DM_KEY|ADC_KEY|CMD_ADC|USB_GADGET|USB_DWC3_GADGET|USB_GADGET_DOWNLOAD|USB_FUNCTION_ROCKUSB|CMD_ROCKUSB)=y$' \
+  "$UBOOT_DEFCONFIG" || {
+    echo "ERROR: U-Boot key/RockUSB 配置不完整"
+    exit 1
+}
+echo "==============================================="
+
+echo "===== 检查 U-Boot Kconfig 是否存在 ====="
+grep -R -nE \
+  'config (DM_KEY|ADC_KEY|USB_GADGET|USB_DWC3_GADGET|USB_GADGET_DOWNLOAD|USB_FUNCTION_ROCKUSB|CMD_ROCKUSB)' \
+  package/boot/uboot-rockchip/src \
+  2>/dev/null | head -100 || true
+echo "========================================"
+
 
 # 修改uhttpd配置文件，启用nginx
 # sed -i "/.*uhttpd.*/d" .config
