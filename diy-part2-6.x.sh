@@ -112,7 +112,7 @@ if [ -d feeds/packages/lang/golang/.git ]; then
 else
     rm -rf feeds/packages/lang/golang
     git clone --depth=1 -b 26.x \
-  [https://github.com/sbwml/packages_lang_golang](https://github.com/sbwml/packages_lang_golang) \
+  https://github.com/sbwml/packages_lang_golang \
   feeds/packages/lang/golang
 fi
 
