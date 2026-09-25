@@ -124,10 +124,6 @@ jobs:
       run: |
         cd openwrt
 
-        # 先把 kiddin9 feed 临时移走，避免 install -a 安装其所有包，
-        # 特别是与 Linux 6.6.144 不兼容的 shortcut-fe。
-        mv feeds/kiddin9 ../kiddin9-feed
-
         # 安装除 kiddin9 之外的所有 feeds（iStoreOS 默认和你的其他第三方 feeds）。
         ./scripts/feeds install -a
 
