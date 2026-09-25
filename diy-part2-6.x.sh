@@ -112,8 +112,8 @@ if [ -d feeds/packages/lang/golang/.git ]; then
 else
     rm -rf feeds/packages/lang/golang
     git clone --depth=1 -b 26.x \
-      https://github.com/sbwml/packages_lang_golang \
-      feeds/packages/lang/golang
+  [https://github.com/sbwml/packages_lang_golang](https://github.com/sbwml/packages_lang_golang) \
+  feeds/packages/lang/golang
 fi
 
 echo 'src/gz openwrt_kiddin9 https://dl.openwrt.ai/latest/packages/aarch64_generic/kiddin9' \
