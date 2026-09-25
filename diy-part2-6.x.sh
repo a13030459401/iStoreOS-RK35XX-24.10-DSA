@@ -80,7 +80,6 @@ grep -nE \
 # 通用 EasePi RK3568 U-Boot：仅检查现有配置，不强制改写。
 # bd-one 通过 Device/Legacy/rk3568 使用 easepi-rk3568。
 # ===============================================================
-UBOOT_DEFCONFIG="package/boot/uboot-rockchip/src/configs/easepi-rk3568_defconfig"
 
 test -f "$UBOOT_DEFCONFIG" || {
   echo "ERROR: 找不到 U-Boot defconfig: $UBOOT_DEFCONFIG"
