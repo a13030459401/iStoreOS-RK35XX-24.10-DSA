@@ -102,7 +102,14 @@ sed -i "s/:443/:4443/g" package/network/services/uhttpd/files/uhttpd.config
 cp -a $GITHUB_WORKSPACE/configfiles/etc/* package/base-files/files/etc/
 # ls package/base-files/files/etc/
 
-git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
+if [ -d feeds/packages/lang/golang/.git ]; then
+    echo "feeds/packages/lang/golang 已存在，跳过 clone"
+else
+    rm -rf feeds/packages/lang/golang
+    git clone --depth=1 -b 26.x \
+      https://github.com/sbwml/packages_lang_golang \
+      feeds/packages/lang/golang
+fi
 
 echo 'src/gz openwrt_kiddin9 https://dl.openwrt.ai/latest/packages/aarch64_generic/kiddin9' \
   >> ./package/system/opkg/files/customfeeds.conf
