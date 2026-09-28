@@ -2,6 +2,8 @@
 /*
  * Device Tree for BenDian One (RK3568) - fnOS / iStoreOS Edition
  * 完整适配 Rockchip MPP 硬件编解码加速与 RKNPU 驱动栈
+ * echo 1 | sudo tee /sys/class/gpio/gpio135/value风扇开
+ * echo 0 | sudo tee /sys/class/gpio/gpio135/value风扇关
  */
 
 /dts-v1/;
