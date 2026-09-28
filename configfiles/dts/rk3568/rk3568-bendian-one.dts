@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Device Tree for BenDian One (RK3568) - Mainline Linux 6.x Edition
+ * Device Tree for BenDian One (RK3568) - fnOS / iStoreOS Edition
+ * 完整适配 Rockchip MPP 硬件编解码加速与 RKNPU 驱动栈
  */
 
 /dts-v1/;
@@ -13,6 +14,7 @@
 #include <dt-bindings/soc/rockchip,vop2.h>
 #include <dt-bindings/thermal/thermal.h>
 #include <dt-bindings/phy/phy.h>
+#include <dt-bindings/clock/rk3568-cru.h>
 #include <rockchip/rk3568.dtsi>
 #include "rk3568-vngpu.dtsi"
 #include "rk3568-ramoops.dtsi"
@@ -21,10 +23,9 @@
     model = "BenDian One";
     compatible = "bendian,bd-one", "rockchip,rk3568";
 
-    /* 正确的网卡主次：独立千兆为 WAN (ethernet0)，4口交换机为 LAN (ethernet1) */
     aliases {
-        ethernet0 = &gmac0;
-        ethernet1 = &gmac1;
+        ethernet0 = &gmac1;
+        ethernet1 = &gmac0;
         mmc0 = &sdhci;
         serial2 = &uart2;
     };
@@ -41,7 +42,7 @@
         linux,cma {
             compatible = "shared-dma-pool";
             reusable;
-            size = <0x0 0x10000000>; /* 256MB */
+            size = <0x0 0x20000000>; /* 512MB */
             linux,cma-default;
         };
     };
@@ -81,7 +82,7 @@
     hdmi_con: hdmi-con {
         compatible = "hdmi-connector";
         type = "a";
-	status = "okay";
+        status = "okay";
 
         port {
             hdmi_con_in: endpoint {
@@ -116,7 +117,7 @@
         button-recovery {
             label = "Recovery";
             linux,code = <KEY_VENDOR>;
-            press-threshold-microvolt = <1750>;
+            press-threshold-microvolt = <17500>;
         };
     };
 
@@ -150,26 +151,24 @@
         vin-supply = <&vcc12v_dcin>;
     };
 
-vcc5v0_usb: vcc5v0-usb {
-    compatible = "regulator-fixed";
-    regulator-name = "vcc5v0_usb";
-    enable-active-high;
-    gpio = <&gpio0 RK_PC1 GPIO_ACTIVE_HIGH>;
-    pinctrl-names = "default";
-    pinctrl-0 = <&usb_pwr_en>;
+    vcc5v0_usb: vcc5v0-usb {
+        compatible = "regulator-fixed";
+        regulator-name = "vcc5v0_usb";
+        enable-active-high;
+        gpio = <&gpio0 RK_PC1 GPIO_ACTIVE_HIGH>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&usb_pwr_en>;
+        regulator-boot-on;
+        regulator-always-on;
+        regulator-min-microvolt = <5000000>;
+        regulator-max-microvolt = <5000000>;
+        vin-supply = <&vcc5v0_sys>;
+        startup-delay-us = <1000000>;
 
-    regulator-boot-on;
-    regulator-always-on;
-
-    regulator-min-microvolt = <5000000>;
-    regulator-max-microvolt = <5000000>;
-    vin-supply = <&vcc5v0_sys>;
-    startup-delay-us = <1000000>;
-
-    regulator-state-mem {
-        regulator-off-in-suspend;
+        regulator-state-mem {
+            regulator-off-in-suspend;
+        };
     };
-};
 
     vcc_3v3: vcc-3v3 {
         compatible = "regulator-fixed";
@@ -211,7 +210,6 @@ vcc5v0_usb: vcc5v0-usb {
         vin-supply = <&vcc3v3_sys>;
     };
 
-    /* NVMe SSD 独立供电链 */
     vcc3v3_pi6c_03: vcc3v3-pi6c-03 {
         compatible = "regulator-fixed";
         regulator-name = "vcc3v3_pi6c_03";
@@ -219,10 +217,12 @@ vcc5v0_usb: vcc5v0-usb {
         gpio = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;
         pinctrl-names = "default";
         pinctrl-0 = <&ssd_pwr_en>;
+        regulator-always-on;
+        regulator-boot-on;
         regulator-min-microvolt = <3300000>;
         regulator-max-microvolt = <3300000>;
         vin-supply = <&vcc12v_dcin>;
-        startup-delay-us = <200000>;
+        startup-delay-us = <500000>;
     };
 
     vcc3v3_pcie: vcc3v3-pcie {
@@ -235,7 +235,6 @@ vcc5v0_usb: vcc5v0-usb {
         vin-supply = <&vcc3v3_pi6c_03>;
     };
 
-    /* 真实硬件：PWM4 调压 GPU */
     vdd_gpu: vdd-gpu {
         compatible = "pwm-regulator";
         pwms = <&pwm4 0 5000 1>;
@@ -248,9 +247,9 @@ vcc5v0_usb: vcc5v0-usb {
         regulator-max-microvolt = <1350000>;
         regulator-ramp-delay = <6001>;
         regulator-settling-time-up-us = <250>;
+        pwm-dutycycle-range = <0 100>;
     };
 
-    /* 真实硬件：PWM5 调压 Logic */
     vdd_logic: vdd-logic {
         compatible = "pwm-regulator";
         pwms = <&pwm5 0 5000 1>;
@@ -263,14 +262,13 @@ vcc5v0_usb: vcc5v0-usb {
         regulator-max-microvolt = <1350000>;
         regulator-ramp-delay = <6001>;
         regulator-settling-time-up-us = <250>;
+        pwm-dutycycle-range = <0 100>;
     };
 };
 
-/* 开启用于调压的硬件 PWM4 & PWM5 */
 &pwm4 { status = "okay"; };
 &pwm5 { status = "okay"; };
 
-/* 彻底禁用占用了 WAN 口引脚的 UART3，以及不存在的 I2C5/UART5 */
 &uart3 { status = "disabled"; };
 &uart5 { status = "disabled"; };
 &i2c5 {
@@ -280,12 +278,12 @@ vcc5v0_usb: vcc5v0-usb {
 };
 &uart2 { status = "okay"; };
 
-/* CPU 电源管理：板载真实 TCS4525 */
+/* CPU 电源管理：FAN53555 / TCS4525 */
 &i2c0 {
     status = "okay";
 
     vdd_cpu: regulator@1c {
-        compatible = "tcs,tcs4525";
+        compatible = "tcs,tcs4525", "silergy,syr827", "fcs,fan53555";
         reg = <0x1c>;
         fcs,suspend-voltage-selector = <1>;
         regulator-name = "vdd_cpu";
@@ -308,28 +306,19 @@ vcc5v0_usb: vcc5v0-usb {
 &cpu2 { cpu-supply = <&vdd_cpu>; };
 &cpu3 { cpu-supply = <&vdd_cpu>; };
 
-/* GPU：挂载 PWM4 调压轨，支持主线内核 Panfrost 驱动 */
+/* Mali GPU：绑定供电与调频 */
 &gpu {
     mali-supply = <&vdd_gpu>;
+    operating-points-v2 = <&gpu_opp_table>;
+    power-off-delay-ms = <20>;
     status = "okay";
 };
 
-/* Combo PHY */
 &combphy0 { status = "okay"; };
 &combphy1 { status = "okay"; };
 &combphy2 { status = "okay"; };
 
-/* 双原生 SATA */
 &sata0 {
-    status = "okay";
-    ahci-supply = <&vcc3v3_sys>;
-    phy-supply = <&vcc3v3_sys>;
-    target-supply = <&vcc3v3_sys>;
-    phys = <&combphy1 PHY_TYPE_SATA>;
-    phy-names = "sata-phy";
-};
-
-&sata1 {
     status = "okay";
     ahci-supply = <&vcc3v3_sys>;
     phy-supply = <&vcc3v3_sys>;
@@ -338,32 +327,45 @@ vcc5v0_usb: vcc5v0-usb {
     phy-names = "sata-phy";
 };
 
-/* eMMC */
+&sata1 {
+    status = "okay";
+    ahci-supply = <&vcc3v3_sys>;
+    phy-supply = <&vcc3v3_sys>;
+    target-supply = <&vcc3v3_sys>;
+    phys = <&combphy1 PHY_TYPE_SATA>;
+    phy-names = "sata-phy";
+};
+
 &sdhci {
     bus-width = <8>;
     max-frequency = <200000000>;
     non-removable;
     mmc-hs200-1_8v;
+    vmmc-supply = <&vcc_3v3>;
+    vqmmc-supply = <&vcc_1v8>;
     pinctrl-names = "default";
     pinctrl-0 = <&emmc_bus8 &emmc_clk &emmc_cmd>;
     status = "okay";
 };
 
-/* USB 控制器 */
-&usb2phy0 { status = "okay"; };
-&usb2phy0_host {
-    phy-supply = <&vcc5v0_usb>;
-    status = "okay";
+/* 单 USB 2.0 拓扑 */
+&usb2phy0 { 
+    status = "okay"; 
 };
+
 &usb2phy0_otg {
     phy-supply = <&vcc5v0_usb>;
     status = "okay";
 };
 
+&usb2phy0_host {
+    status = "disabled";
+};
+
 &usb_host0_xhci {
     dr_mode = "host";
-    phys = <&usb2phy0_otg>, <&usb2phy0_host>;
-    phy-names = "usb2-phy", "usb2-phy";
+    phys = <&usb2phy0_otg>;
+    phy-names = "usb2-phy";
     extcon = <&usb2phy0>;
     maximum-speed = "high-speed";
     snps,dis_u2_susphy_quirk;
@@ -374,7 +376,7 @@ vcc5v0_usb: vcc5v0-usb {
 &usb_host0_ohci { status = "disabled"; };
 &usb2phy1 { status = "disabled"; };
 
-/* PCIe */
+/* PCIe 2.0 x1 */
 &pcie2x1 {
     reset-gpios = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
     vpcie3v3-supply = <&vcc3v3_sys>;
@@ -383,31 +385,30 @@ vcc5v0_usb: vcc5v0-usb {
     status = "okay";
 };
 
-&pcie30phy { status = "okay"; };
+&pcie30phy {
+    status = "okay";
+};
+
 &pcie3x2 {
     reset-gpios = <&gpio0 RK_PC6 GPIO_ACTIVE_HIGH>;
     vpcie3v3-supply = <&vcc3v3_pcie>;
     pinctrl-names = "default";
     pinctrl-0 = <&pcie30_reset_pin>;
-    rockchip,perst-inactive-ms = <500>;
-/* 暂不使用旧 BSP 的 PCIe ranges，先测试 Linux 6.x 默认窗口映射。 */
-/*
-ranges = <0x01000000 0x00 0xf0100000 0x00 0xf0100000 0x00 0x00100000>,
-         <0x02000000 0x00 0xf0200000 0x00 0xf0200000 0x00 0x01e00000>,
-         <0x03000000 0x00 0x40000000 0x03 0x80000000 0x00 0x40000000>;
-*/
     status = "okay";
 };
 
-/* GMAC0: 4口交换机 (LAN1~LAN4) */
+/* 网络架构：RTL8367S DSA + RTL8211F */
 &gmac0 {
     assigned-clocks = <&cru SCLK_GMAC0_RX_TX>, <&cru SCLK_GMAC0>;
-    assigned-clock-parents = <&cru SCLK_GMAC0_RGMII_SPEED>, <&cru CLK_MAC0_2TOP>;
+    assigned-clock-parents = <&cru SCLK_GMAC0_RGMII_SPEED>,
+                             <&cru CLK_MAC0_2TOP>;
     assigned-clock-rates = <0>, <125000000>;
     clock_in_out = "output";
     phy-mode = "rgmii-id";
+    /delete-property/ phy-handle;
     pinctrl-names = "default";
-    pinctrl-0 = <&gmac0_miim &gmac0_tx_bus2 &gmac0_rx_bus2 &gmac0_rgmii_clk &gmac0_rgmii_bus>;
+    pinctrl-0 = <&gmac0_miim &gmac0_tx_bus2 &gmac0_rx_bus2
+                 &gmac0_rgmii_clk &gmac0_rgmii_bus>;
     tx_delay = <0x3c>;
     rx_delay = <0x2f>;
     status = "okay";
@@ -432,14 +433,7 @@ ranges = <0x01000000 0x00 0xf0100000 0x00 0xf0100000 0x00 0x00100000>,
         pinctrl-names = "default";
         pinctrl-0 = <&gmac0_reset>;
 
-        switch_intc: interrupt-controller {
-            #address-cells = <0>;
-            #interrupt-cells = <1>;
-            interrupt-controller;
-        };
-
         mdio {
-            compatible = "realtek,smi-mdio";
             #address-cells = <1>;
             #size-cells = <0>;
 
@@ -496,21 +490,23 @@ ranges = <0x01000000 0x00 0xf0100000 0x00 0xf0100000 0x00 0x00100000>,
     };
 };
 
-/* GMAC1: 独立千兆 WAN 口 (解除引脚冲突) */
 &gmac1 {
     assigned-clocks = <&cru SCLK_GMAC1_RX_TX>, <&cru SCLK_GMAC1>;
-    assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>;
+    assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>,
+                             <&cru CLK_MAC1_2TOP>;
     assigned-clock-rates = <0>, <125000000>;
     clock_in_out = "output";
-    phy-mode = "rgmii";
+
+    phy-mode = "rgmii-id";
     phy-handle = <&rgmii_phy1>;
+
     pinctrl-names = "default";
-    pinctrl-0 = <&gmac1m0_miim &gmac1m0_tx_bus2 &gmac1m0_rx_bus2 &gmac1m0_rgmii_clk &gmac1m0_rgmii_bus>;
-    snps,reset-gpio = <&gpio1 RK_PB1 GPIO_ACTIVE_LOW>;
-    snps,reset-active-low;
-    snps,reset-delays-us = <0 20000 100000>;
-    tx_delay = <0x30>;
+    pinctrl-0 = <&gmac1m0_miim &gmac1m0_tx_bus2 &gmac1m0_rx_bus2
+                 &gmac1m0_rgmii_clk &gmac1m0_rgmii_bus>;
+
+    tx_delay = <0x4f>;
     rx_delay = <0x10>;
+
     status = "okay";
 };
 
@@ -518,14 +514,15 @@ ranges = <0x01000000 0x00 0xf0100000 0x00 0xf0100000 0x00 0x00100000>,
     rgmii_phy1: ethernet-phy@0 {
         compatible = "ethernet-phy-ieee802.3-c22";
         reg = <0>;
+        reset-gpios = <&gpio1 RK_PB1 GPIO_ACTIVE_LOW>;
+        reset-assert-us = <20000>;
+        reset-deassert-us = <100000>;
         realtek,led-data = <0x17b>;
     };
 };
 
 /* CPU 温控 */
 &cpu_thermal {
-
-
     polling-delay = <1000>;
     polling-delay-passive = <250>;
 
@@ -533,28 +530,24 @@ ranges = <0x01000000 0x00 0xf0100000 0x00 0xf0100000 0x00 0x00100000>,
     /delete-node/ cooling-maps;
 
     trips {
-        /* 65°C 开全速；温度低于 60°C 才停止 */
         cpu_fan_on: cpu-fan-on {
             temperature = <70000>;
             hysteresis = <10000>;
             type = "active";
         };
 
-        /* 75°C 开始温和限频 */
         cpu_alert0: cpu-alert0 {
             temperature = <75000>;
             hysteresis = <5000>;
             type = "passive";
         };
 
-        /* 85°C 明显限频 */
         cpu_alert1: cpu-alert1 {
             temperature = <85000>;
             hysteresis = <2000>;
             type = "passive";
         };
 
-        /* 95°C 热保护 */
         cpu_crit: cpu-crit {
             temperature = <95000>;
             hysteresis = <2000>;
@@ -570,27 +563,18 @@ ranges = <0x01000000 0x00 0xf0100000 0x00 0xf0100000 0x00 0x00100000>,
 
         map_cpu_mild {
             trip = <&cpu_alert0>;
-            cooling-device =
-                <&cpu0 THERMAL_NO_LIMIT 2>,
-                <&cpu1 THERMAL_NO_LIMIT 2>,
-                <&cpu2 THERMAL_NO_LIMIT 2>,
-                <&cpu3 THERMAL_NO_LIMIT 2>;
+            cooling-device = <&cpu0 THERMAL_NO_LIMIT 2>;
         };
 
         map_cpu_heavy {
             trip = <&cpu_alert1>;
-            cooling-device =
-                <&cpu0 2 THERMAL_NO_LIMIT>,
-                <&cpu1 2 THERMAL_NO_LIMIT>,
-                <&cpu2 2 THERMAL_NO_LIMIT>,
-                <&cpu3 2 THERMAL_NO_LIMIT>;
+            cooling-device = <&cpu0 2 THERMAL_NO_LIMIT>;
         };
     };
 };
 
-/* GPU 温控：先开风扇，再限制 GPU */
+/* GPU 温控 */
 &gpu_thermal {
-
     polling-delay = <1000>;
     polling-delay-passive = <250>;
 
@@ -598,21 +582,18 @@ ranges = <0x01000000 0x00 0xf0100000 0x00 0xf0100000 0x00 0x00100000>,
     /delete-node/ cooling-maps;
 
     trips {
-        /* GPU 达 65°C：风扇全速；低于 60°C 才关闭 */
         gpu_fan_on: gpu-fan-on {
             temperature = <70000>;
             hysteresis = <10000>;
             type = "active";
         };
 
-        /* GPU 达 75°C：开始限制 GPU OPP */
         gpu_alert: gpu-alert {
             temperature = <75000>;
             hysteresis = <2000>;
             type = "passive";
         };
 
-        /* GPU 达 95°C：保护动作 */
         gpu_crit: gpu-crit {
             temperature = <95000>;
             hysteresis = <2000>;
@@ -633,6 +614,9 @@ ranges = <0x01000000 0x00 0xf0100000 0x00 0xf0100000 0x00 0x00100000>,
     };
 };
 
+/* =================== 显示与多媒体系统 =================== */
+
+/* 1. HDMI 控制器 */
 &hdmi {
     status = "okay";
     #sound-dai-cells = <0>;
@@ -644,44 +628,45 @@ ranges = <0x01000000 0x00 0xf0100000 0x00 0xf0100000 0x00 0x00100000>,
     pinctrl-0 = <&hdmitx_scl>,
                 <&hdmitx_sda>,
                 <&hdmitxm0_cec>;
-
-    rockchip,phy-table =
-        <92812500  0x8009 0x0000 0x0270>,
-        <165000000 0x800b 0x0000 0x026d>,
-        <185625000 0x800b 0x0000 0x01ed>,
-        <297000000 0x8019 0x0000 0x01ad>,
-        <594000000 0x8039 0x0000 0x019d>;
 };
 
-&vop {
-    assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>;
-    assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>;
-    status = "okay";
-};
-
-&hdmi_in {
-    hdmi_in_vp0: endpoint {
-        remote-endpoint = <&vp0_out_hdmi>;
-    };
-};
-
+/* 2. HDMI 输出端口连接到物理接插件插座 */
 &hdmi_out {
     hdmi_out_con: endpoint {
         remote-endpoint = <&hdmi_con_in>;
     };
 };
 
+/* 3. HDMI 输入端口连接到 VOP2 的 VP0 */
+&hdmi_in {
+    hdmi_in_vp0: endpoint {
+        remote-endpoint = <&vp0_out_hdmi>;
+    };
+};
+
+/* 4. VOP2 的 VP0 端点：明确标识为 HDMI0 输出端口通道 */
 &vp0 {
-    vp0_out_hdmi: endpoint {
+    vp0_out_hdmi: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
+        reg = <ROCKCHIP_VOP2_EP_HDMI0>;
         remote-endpoint = <&hdmi_in_vp0>;
     };
+};
+
+/* 5. VOP2 显示核心：精准绑定 HPLL / VPLL 专有时钟源 */
+&vop {
+    assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>;
+    assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>;
+    status = "okay";
 };
 
 &vop_mmu {
     status = "okay";
 };
 
-&i2s0_8ch { status = "okay"; };
+&i2s0_8ch {
+    status = "okay";
+};
+
 &saradc {
     vref-supply = <&vcca_1v8>;
     status = "okay";
@@ -723,22 +708,19 @@ ranges = <0x01000000 0x00 0xf0100000 0x00 0xf0100000 0x00 0x00100000>,
         };
     };
 
-pcie {
-    /* M.2/NVMe 3.3 V 供电使能：GPIO0_C0 */
-    ssd_pwr_en: ssd-pwr-en {
-        rockchip,pins = <0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
-    };
+    pcie {
+        ssd_pwr_en: ssd-pwr-en {
+            rockchip,pins = <0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
 
-    /* M.2/NVMe 的 PERST#：GPIO0_C6 */
-    pcie30_reset_pin: pcie30-reset-pin {
-        rockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_none>;
-    };
+        pcie30_reset_pin: pcie30-reset-pin {
+            rockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
 
-    /* PCIe 2.0 x1 的 reset：GPIO3_C1 */
-    pcie20_reset_pin: pcie20-reset-pin {
-        rockchip,pins = <3 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
+        pcie20_reset_pin: pcie20-reset-pin {
+            rockchip,pins = <3 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
     };
-};
 
     usb {
         usb_pwr_en: usb-pwr-en {
@@ -748,41 +730,55 @@ pcie {
 
     gmac-reset {
         gmac0_reset: gmac0-reset {
-            /* rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;优化：将 pinctrl 改为弱上拉 &pcfg_pull_up，防止交换机开机偶发丢包或识别不到：*/
-
-	    rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
+            rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
         };
     };
-};  /* 这一行必须存在，关闭 &pinctrl */
+};
 
-/* Mali-G52 GPU */
-&gpu {
-    mali-supply = <&vdd_gpu>;
-    operating-points-v2 = <&gpu_opp_table>;
-    power-off-delay-ms = <20>;
+/* =================== 硬件加速与外设使能 =================== */
+
+/* NPU 神经网络加速器 */
+&bus_npu {
+    bus-supply = <&vdd_logic>;
     status = "okay";
 };
 
-/* RKNPU 神经网络加速及动态调频 */
-&{/npu@fde40000} {
+/* 硬件视频编码 */
+&rkvenc {
+    venc-supply = <&vdd_logic>;
+    operating-points-v2 = <&rkvenc_opp_table>;
+    status = "okay";
+};
+
+/* 硬件视频解码 */
+&rkvdec {
+    vdec-supply = <&vdd_logic>;
+    operating-points-v2 = <&rkvdec_opp_table>;
+    status = "okay";
+};
+
+/* 3. eFuse/OTP：重映射 4 时钟 + 复位，激活 AVS 自适应调压 */
+&otp {
+    clocks = <&cru CLK_OTPC_NS_USR>,
+             <&cru PCLK_OTPC_NS>,
+             <&cru PCLK_OTPPHY>,
+             <&cru CLK_OTPC_NS_SBPI>;
+
+    clock-names = "otp", "apb_pclk", "phy", "sbpi";
+
+    resets = <&cru SRST_OTPPHY>;
+    reset-names = "otp_phy";
+
+    status = "okay";
+};
+
+/* 4. RKNPU：截断长度至 0xb000，彻底消除与 IOMMU 的 -EBUSY 冲突 */
+&rknpu {
+    reg = <0x0 0xfde40000 0x0 0xb000>;
     rknpu-supply = <&vdd_logic>;
-    operating-points-v2 = <&npu_opp_table>;
     status = "okay";
 };
 
 &rknpu_mmu {
-    status = "okay";
-};
-
-&bus_npu {
-    bus-supply = <&vdd_logic>;
-    operating-points-v2 = <&bus_npu_opp_table>;
-    status = "okay";
-};
-
-/* VPU 视频硬件解码动态调频 */
-&rkvdec {
-    vdec-supply = <&vdd_logic>;
-    operating-points-v2 = <&rkvdec_opp_table>;
     status = "okay";
 };
