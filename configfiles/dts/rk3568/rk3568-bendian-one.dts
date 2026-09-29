@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
  * Device Tree for BenDian One (RK3568) - 2026.9.29  fnOS最新V1.2.0604版本6.18内核 / iStoreOS 24.10.8版本6.6.144内核
- * 完整适配 Rockchip MPP 硬件编解码加速与 RKNPU 驱动栈 在fnOS最新V1.2.0604版本6.18.#1090内核上 GPU解码 相册NPU解码 4K解码都支持
+ * 完整适配 Rockchip MPP 硬件编解码加速与 RKNPU 驱动栈 在fnOS最新V1.2.0604 版本  内核6.18.18.c1090-trim  上 GPU解码 相册NPU解码 4K解码都支持
  */
 
 /dts-v1/;
