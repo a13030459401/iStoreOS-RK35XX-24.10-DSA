@@ -34,7 +34,7 @@
         stdout-path = "serial2:1500000n8";
     };
 
-/* 在 reserved-memory 中补上 mpp_reserved（用于影视硬解缓冲池） */
+/* 默认 512MB CMA：供视频编解码、显示等 DMA 设备按需共享 */
     reserved-memory {
         #address-cells = <2>;
         #size-cells = <2>;
@@ -43,15 +43,8 @@
         linux,cma {
             compatible = "shared-dma-pool";
             reusable;
-            size = <0x0 0x20000000>; /* 512MB */
+            size = <0x0 0x20000000>; /* 512MB 动态复用池 */
             linux,cma-default;
-        };
-
-        /* 推荐增加：MPP 专用大块连续内存池 */
-        mpp_reserved: mpp-reserved {
-            compatible = "shared-dma-pool";
-            no-map;
-            size = <0x0 0x8000000>; /* 128MB */
         };
     };
 
@@ -442,7 +435,7 @@
         reset-assert-us = <50000>;
         reset-deassert-us = <200000>;
         pinctrl-names = "default";
-        pinctrl-0 = <&rtl8367_reset_pin>;
+        pinctrl-0 = <&rtl8367_reset_pin &rtl8367_int_pin>;
 
         /* 原机硬件中断控制器：解决网口轮询导致的响应卡顿与吞吐抖动 */
         rtl8367_intc: interrupt-controller {
@@ -550,7 +543,7 @@
 
 &mdio1 {
     rgmii_phy1: ethernet-phy@0 {
-        compatible = "ethernet-phy-ieee802.3-c22";
+        compatible = "ethernet-phy-id001c.c916", "ethernet-phy-ieee802.3-c22";
         reg = <0>;
         reset-gpios = <&gpio1 RK_PB1 GPIO_ACTIVE_LOW>;
         reset-assert-us = <20000>;
@@ -770,6 +763,11 @@
         rtl8367_reset_pin: rtl8367-reset-pin {
             rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_up>;
         };
+
+        /* 补充：中断引脚默认上拉，防止开机悬空毛刺 */
+        rtl8367_int_pin: rtl8367-int-pin {
+            rockchip,pins = <0 RK_PA4 RK_FUNC_GPIO &pcfg_pull_up>;
+        };
     };
 }; 
 
@@ -798,7 +796,6 @@
 &rkvdec {
     vdec-supply = <&vdd_logic>;
     operating-points-v2 = <&rkvdec_opp_table>;
-    memory-region = <&mpp_reserved>;
     status = "okay";
 
     /* 优化项：补全 7 路微内核与 CABAC 复位信号，防止 4K 拖动死锁 */
@@ -812,10 +809,14 @@
                   "shared_niu_a", "shared_niu_h";
 };
 
+/* 建议紧跟在 &rkvdec 后显式使能 MMU */
+&rkvdec_mmu {
+    status = "okay";
+};
+
 /* 图像后期处理引擎（针对字幕渲染、视频缩放增强） */
 &iep {
     status = "okay";
-    memory-region = <&mpp_reserved>;
 };
 
 &iep_mmu {
@@ -848,9 +849,9 @@
     status = "okay";
 };
 
-/* 4. RKNPU：截断长度至 0xb000，彻底消除与 IOMMU 的 -EBUSY 冲突 */
+/* 针对 fnOS 当前 vendor RKNPU 驱动的资源重叠规避；非通用硬件定义 */
 &rknpu {
-    reg = <0x0 0xfde40000 0x0 0xb000>;
+    reg = <0x0 0xfde40000 0x0 0x3000>;
     rknpu-supply = <&vdd_logic>;
     status = "okay";
 };
