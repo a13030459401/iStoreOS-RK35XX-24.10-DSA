@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Device Tree for BenDian One (RK3568) - fnOS / iStoreOS Edition
+ * Device Tree for BenDian One (RK3568) - 2026.9.29  fnOS最新V1.2.0604版本6.18内核 / iStoreOS 24.10.8版本6.6.144内核
  * 完整适配 Rockchip MPP 硬件编解码加速与 RKNPU 驱动栈
  */
 
@@ -34,6 +34,7 @@
         stdout-path = "serial2:1500000n8";
     };
 
+/* 在 reserved-memory 中补上 mpp_reserved（用于影视硬解缓冲池） */
     reserved-memory {
         #address-cells = <2>;
         #size-cells = <2>;
@@ -44,6 +45,13 @@
             reusable;
             size = <0x0 0x20000000>; /* 512MB */
             linux,cma-default;
+        };
+
+        /* 推荐增加：MPP 专用大块连续内存池 */
+        mpp_reserved: mpp-reserved {
+            compatible = "shared-dma-pool";
+            no-map;
+            size = <0x0 0x8000000>; /* 128MB */
         };
     };
 
@@ -394,23 +402,25 @@
     vpcie3v3-supply = <&vcc3v3_pcie>;
     pinctrl-names = "default";
     pinctrl-0 = <&pcie30_reset_pin>;
+    rockchip,perst-inactive-ms = <500>;
     status = "okay";
 };
 
-/* 网络架构：RTL8367S DSA + RTL8211F */
+/* =================== 网络架构：RTL8367S DSA + RTL8211F (原机对齐版) =================== */
+
+/* 1. GMAC0：连接 RTL8367S 交换机 CPU Port 7 (完全对齐原机时序与延时) */
 &gmac0 {
     assigned-clocks = <&cru SCLK_GMAC0_RX_TX>, <&cru SCLK_GMAC0>;
-    assigned-clock-parents = <&cru SCLK_GMAC0_RGMII_SPEED>,
-                             <&cru CLK_MAC0_2TOP>;
+    assigned-clock-parents = <&cru SCLK_GMAC0_RGMII_SPEED>, <&cru CLK_MAC0_2TOP>;
     assigned-clock-rates = <0>, <125000000>;
     clock_in_out = "output";
-    phy-mode = "rgmii-id";
+    phy-mode = "rgmii";
     /delete-property/ phy-handle;
     pinctrl-names = "default";
     pinctrl-0 = <&gmac0_miim &gmac0_tx_bus2 &gmac0_rx_bus2
                  &gmac0_rgmii_clk &gmac0_rgmii_bus>;
-    tx_delay = <0x3c>;
-    rx_delay = <0x2f>;
+    tx_delay = <0x4f>;
+    rx_delay = <0x0f>;
     status = "okay";
 
     fixed-link {
@@ -419,6 +429,7 @@
     };
 };
 
+/* 2. MDIO0：管理 RTL8367S 交换芯片及其 4 个千兆内部 PHY (DSA 结构) */
 &mdio0 {
     compatible = "snps,dwmac-mdio";
     #address-cells = <1>;
@@ -427,20 +438,49 @@
     rtl8367s: switch@1d {
         compatible = "realtek,rtl8365mb";
         reg = <0x1d>;
-        reset-gpios = <&gpio0 RK_PA5 GPIO_ACTIVE_LOW>;
+        reset-gpios = <&gpio0 RK_PA3 GPIO_ACTIVE_LOW>;
         reset-assert-us = <50000>;
         reset-deassert-us = <200000>;
         pinctrl-names = "default";
-        pinctrl-0 = <&gmac0_reset>;
+        pinctrl-0 = <&rtl8367_reset_pin>;
+
+        /* 原机硬件中断控制器：解决网口轮询导致的响应卡顿与吞吐抖动 */
+        rtl8367_intc: interrupt-controller {
+            interrupt-parent = <&gpio0>;
+            interrupts = <RK_PA4 IRQ_TYPE_LEVEL_LOW>;
+            interrupt-controller;
+            #address-cells = <0>;
+            #interrupt-cells = <1>;
+        };
 
         mdio {
+            compatible = "realtek,smi-mdio";
             #address-cells = <1>;
             #size-cells = <0>;
 
-            phy0: ethernet-phy@0 { reg = <0>; };
-            phy1: ethernet-phy@1 { reg = <1>; };
-            phy2: ethernet-phy@2 { reg = <2>; };
-            phy3: ethernet-phy@3 { reg = <3>; };
+            phy0: ethernet-phy@0 {
+                reg = <0>;
+                interrupt-parent = <&rtl8367_intc>;
+                interrupts = <0>;
+            };
+
+            phy1: ethernet-phy@1 {
+                reg = <1>;
+                interrupt-parent = <&rtl8367_intc>;
+                interrupts = <1>;
+            };
+
+            phy2: ethernet-phy@2 {
+                reg = <2>;
+                interrupt-parent = <&rtl8367_intc>;
+                interrupts = <2>;
+            };
+
+            phy3: ethernet-phy@3 {
+                reg = <3>;
+                interrupt-parent = <&rtl8367_intc>;
+                interrupts = <3>;
+            };
         };
 
         ports {
@@ -479,7 +519,7 @@
                 reg = <7>;
                 label = "cpu";
                 ethernet = <&gmac0>;
-                phy-mode = "rgmii-id";
+                phy-mode = "rgmii";
 
                 fixed-link {
                     speed = <1000>;
@@ -490,14 +530,13 @@
     };
 };
 
+/* 3. GMAC1：原机独立第五网口 (RTL8211F) */
 &gmac1 {
     assigned-clocks = <&cru SCLK_GMAC1_RX_TX>, <&cru SCLK_GMAC1>;
-    assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>,
-                             <&cru CLK_MAC1_2TOP>;
+    assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>, <&cru CLK_MAC1_2TOP>;
     assigned-clock-rates = <0>, <125000000>;
     clock_in_out = "output";
-
-    phy-mode = "rgmii-id";
+    phy-mode = "rgmii";
     phy-handle = <&rgmii_phy1>;
 
     pinctrl-names = "default";
@@ -506,7 +545,6 @@
 
     tx_delay = <0x4f>;
     rx_delay = <0x10>;
-
     status = "okay";
 };
 
@@ -532,7 +570,7 @@
     trips {
         cpu_fan_on: cpu-fan-on {
             temperature = <75000>;
-            hysteresis = <15000>;
+            hysteresis = <10000>;
             type = "active";
         };
 
@@ -584,7 +622,7 @@
     trips {
         gpu_fan_on: gpu-fan-on {
             temperature = <75000>;
-            hysteresis = <15000>;
+            hysteresis = <10000>;
             type = "active";
         };
 
@@ -729,10 +767,16 @@
     };
 
     gmac-reset {
-        gmac0_reset: gmac0-reset {
-            rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
+        rtl8367_reset_pin: rtl8367-reset-pin {
+            rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_up>;
         };
     };
+}; 
+
+/*彻底禁用无用的 SDIO Wi-Fi 节点（清理系统报错）*/
+
+&sdmmc2 {
+    status = "disabled";
 };
 
 /* =================== 硬件加速与外设使能 =================== */
@@ -754,17 +798,49 @@
 &rkvdec {
     vdec-supply = <&vdd_logic>;
     operating-points-v2 = <&rkvdec_opp_table>;
+    memory-region = <&mpp_reserved>;
+    status = "okay";
+
+    /* 优化项：补全 7 路微内核与 CABAC 复位信号，防止 4K 拖动死锁 */
+    resets = <&cru SRST_A_RKVDEC>, <&cru SRST_H_RKVDEC>,
+             <&cru SRST_RKVDEC_CA>, <&cru SRST_RKVDEC_CORE>,
+             <&cru SRST_RKVDEC_HEVC_CA>,
+             <&cru SRST_A_VPU_NIU>, <&cru SRST_H_VPU_NIU>;
+
+    reset-names = "video_a", "video_h", "video_cabac",
+                  "video_core", "video_hevc_cabac",
+                  "shared_niu_a", "shared_niu_h";
+};
+
+/* 图像后期处理引擎（针对字幕渲染、视频缩放增强） */
+&iep {
+    status = "okay";
+    memory-region = <&mpp_reserved>;
+};
+
+&iep_mmu {
     status = "okay";
 };
 
+/* JPEG 硬件硬解（提升飞牛相册海量图片瞬间缩略图生成速度） */
+&jpegd {
+    status = "okay";
+};
+
+&jpegd_mmu {
+    status = "okay";
+};
 /* 3. eFuse/OTP：重映射 4 时钟 + 复位，激活 AVS 自适应调压 */
+/* eFuse/OTP 控制器：双系统（fnOS BSP 驱动 + iStoreOS 主线 6.6 驱动）双向全兼容配置 */
 &otp {
     clocks = <&cru CLK_OTPC_NS_USR>,
+             <&cru CLK_OTPC_NS_USR>,
+             <&cru CLK_OTPC_NS_SBPI>,
              <&cru PCLK_OTPC_NS>,
-             <&cru PCLK_OTPPHY>,
-             <&cru CLK_OTPC_NS_SBPI>;
+             <&cru PCLK_OTPC_NS>,
+             <&cru PCLK_OTPPHY>;
 
-    clock-names = "otp", "apb_pclk", "phy", "sbpi";
+    clock-names = "usr", "otp", "sbpi", "apb", "apb_pclk", "phy";
 
     resets = <&cru SRST_OTPPHY>;
     reset-names = "otp_phy";
@@ -780,5 +856,15 @@
 };
 
 &rknpu_mmu {
+    status = "okay";
+};
+
+/* 开启硬件真随机数：加速 SSH 连接、TLS/HTTPS 证书握手与加密传输速度 */
+&rng {
+    status = "okay";
+};
+
+/* 开启硬件看门狗：当底层内核严重死锁或供电异常假死时，自动硬件复位重启，避免变砖断联 */
+&wdt {
     status = "okay";
 };
